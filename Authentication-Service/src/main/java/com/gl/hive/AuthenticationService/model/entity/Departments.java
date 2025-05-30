@@ -1,6 +1,7 @@
 package com.gl.hive.AuthenticationService.model.entity;
 
 import com.gl.hive.shared.lib.model.enums.Department;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,7 +25,7 @@ public class Departments {
 
     /* relationships */
     @ManyToMany(mappedBy = "departments", fetch = FetchType.EAGER)
-    @Builder.Default
+    @JsonIgnore
     private Set<User> users = new HashSet<>();
     /* end of relationships */
 

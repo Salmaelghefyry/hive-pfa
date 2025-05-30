@@ -47,7 +47,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (storedToken && storedUser) {
         try {
           // Verify token is still valid
-          const response = await fetch(`${API_BASE}/authenticated/tm`, {
+          const response = await fetch(`${API_BASE}/api/v1/auth/authenticate`, {
+            method: 'POST',
             headers: {
               'Authorization': `Bearer ${storedToken}`,
               'Content-Type': 'application/json'
@@ -55,17 +56,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           if (response.ok) {
+            const userData = await response.json();
+            const normalizedRoles = Array.isArray(userData.roles)
+              ? userData.roles.map((r: any) =>
+                  typeof r === 'string'
+                    ? r.startsWith('ROLE_') ? r : `ROLE_${r.toUpperCase()}`
+                    : (r.role ? `ROLE_${r.role.toUpperCase()}` : '')
+                ).filter(Boolean)
+              : [];
+            
+            const updatedUser = {
+              id: userData.user_id || userData.id || userData.userId || userData.email || '',
+              username: userData.username,
+              email: userData.email,
+              roles: normalizedRoles,
+              rolesDescription: userData.rolesDescription || [],
+              active: !!userData.active,
+              profilePicture: userData.profilePicture
+            };
+            
+            setUser(updatedUser);
             setToken(storedToken);
-            setUser(JSON.parse(storedUser));
+            localStorage.setItem('user', JSON.stringify(updatedUser));
           } else {
             // Token is invalid, clear storage
+            console.error('Token verification failed:', response.status);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            setUser(null);
+            setToken(null);
           }
         } catch (error) {
           console.error('Token verification failed:', error);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          setUser(null);
+          setToken(null);
         }
       }
       setLoading(false);
@@ -83,8 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedRoles = Array.isArray(roles)
         ? roles.map((r: any) =>
             typeof r === 'string'
-              ? r.replace(/^ROLE_/, '').toUpperCase()
-              : (r.role ? r.role.replace(/^ROLE_/, '').toUpperCase() : '')
+              ? r.startsWith('ROLE_') ? r : `ROLE_${r.toUpperCase()}`
+              : (r.role ? `ROLE_${r.role.toUpperCase()}` : '')
           ).filter(Boolean)
         : [];
       
@@ -106,9 +132,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userObj));
       
-      // Fetch additional user info
+      // Fetch additional user info using the authenticate endpoint (POST)
       try {
-        const userInfoRes = await fetch('http://localhost:9999/api/v1/inter-communication/current-user-dto', {
+        const userInfoRes = await fetch(`${API_BASE}/api/v1/auth/authenticate`, {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${newToken}`,
             'Content-Type': 'application/json'
@@ -119,8 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const normalizedRoles = Array.isArray(userData.roles)
             ? userData.roles.map((r: any) =>
                 typeof r === 'string'
-                  ? r.replace(/^ROLE_/, '').toUpperCase()
-                  : (r.role ? r.role.replace(/^ROLE_/, '').toUpperCase() : '')
+                  ? r.startsWith('ROLE_') ? r : `ROLE_${r.toUpperCase()}`
+                  : (r.role ? `ROLE_${r.role.toUpperCase()}` : '')
               ).filter(Boolean)
             : [];
           
@@ -136,6 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           setUser(updatedUser);
           localStorage.setItem('user', JSON.stringify(updatedUser));
+        } else {
+          console.error('Failed to fetch user info after login:', userInfoRes.status);
         }
       } catch (err) {
         console.error('Failed to fetch user info after login:', err);

@@ -3,11 +3,13 @@ package com.gl.hive.ProjectService.controller;
 import com.gl.hive.ProjectService.model.dto.ProjectMembersDto;
 import com.gl.hive.ProjectService.model.request.ProjectRequest;
 import com.gl.hive.ProjectService.service.interfaces.ProjectManagementService;
+import com.gl.hive.ProjectService.service.interfaces.SearchProjectService;
 import com.gl.hive.shared.lib.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.gl.hive.ProjectService.model.response.SearchResponse;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -20,6 +22,7 @@ import static org.springframework.http.HttpStatus.CREATED;
 public class ProjectManagementController {
 
     private final ProjectManagementService projectManagementService;
+    private final SearchProjectService searchProjectService;
 
     /**
      * Endpoint for creating a new project.
@@ -46,6 +49,18 @@ public class ProjectManagementController {
             @PathVariable Long projectId
     ) throws ResourceNotFoundException {
         return ResponseEntity.ok(projectManagementService.listMembersOfProject(projectId));
+    }
+
+    /**
+     * Endpoint for searching or listing all projects.
+     *
+     * @return a ResponseEntity containing a list of SearchResponse objects
+     */
+    @GetMapping("/search-projects")
+    public ResponseEntity<List<SearchResponse>> searchProjects() {
+        // This endpoint is intended for the Admin Dashboard or similar full listing.
+        // The SearchProjectService handles filtering based on user roles if necessary.
+        return ResponseEntity.ok(searchProjectService.listAllProjects());
     }
 
     @PostMapping("/{projectId}/add-member/{userId}")

@@ -14,27 +14,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class DemoController {
 
     @GetMapping("/pl")
-    @PreAuthorize("hasRole('PROJECT_LEADER')")
+    @PreAuthorize("hasAuthority('ROLE_PROJECT_LEADER')")
     public String demo() {
         return "PROJECT_LEADER :: this is for testing authentication and authorization";
     }
 
     @GetMapping("/pa")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public String demo1() {
         return "ADMIN :: this is for testing authentication and authorization";
     }
 
 
     @GetMapping("/tm")
-    @PreAuthorize("hasRole('TEAM_MEMBER')")
+    @PreAuthorize("hasAuthority('ROLE_TEAM_MEMBER')")
     public String demo2() {
         return "TEAM_MEMBER :: this is for testing authentication and authorization";
     }
 
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('PROJECT_LEADER', 'ADMIN', 'TEAM_MEMBER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROJECT_LEADER', 'ROLE_ADMIN', 'ROLE_TEAM_MEMBER')")
     public String demo3() {
         return "'PROJECT_LEADER', 'ADMIN', 'TEAM_MEMBER' :: this is for testing authentication and authorization";
     }

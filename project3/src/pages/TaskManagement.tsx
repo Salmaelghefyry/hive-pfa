@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { taskAPI, projectAPI } from '@/utils/api';
@@ -28,7 +27,7 @@ const TaskManagement = () => {
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState('kanban');
 
-  const canCreateTasks = user && (user.roles.includes('ADMIN') || user.roles.includes('PROJECT_LEADER'));
+  const canCreateTasks = user && (user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_PROJECT_LEADER'));
 
   useEffect(() => {
     loadData();
@@ -45,9 +44,9 @@ const TaskManagement = () => {
     try {
       // Load projects based on user role
       let projectsData = [];
-      if (user.roles.includes('ADMIN')) {
+      if (user.roles.includes('ROLE_ADMIN')) {
         projectsData = await projectAPI.search();
-      } else if (user.roles.includes('PROJECT_LEADER')) {
+      } else if (user.roles.includes('ROLE_PROJECT_LEADER')) {
         projectsData = await projectAPI.search();
         projectsData = projectsData.filter((p: any) => p.leaderId === user.id);
       } else {
@@ -64,7 +63,7 @@ const TaskManagement = () => {
 
       // Load tasks
       let tasksData = [];
-      if (user.roles.includes('ADMIN') || user.roles.includes('PROJECT_LEADER')) {
+      if (user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_PROJECT_LEADER')) {
         tasksData = await taskAPI.search({});
       } else {
         tasksData = await taskAPI.search({ assignedTo_UserId: user.id });

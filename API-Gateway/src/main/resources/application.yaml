@@ -4,38 +4,106 @@ server:
 
 spring:
   application:
-    name: 2-API-GATEWAY
----
-
-#config-server configuration
-spring:
-  config:
-    import: optional:${CONFIG_SERVER_URI:http://localhost:9296}/
----
-
-#api-gateway configuration
-# configuration for gateway has been moved to java class -> GatewayConfig
-spring:
+    name: API-GATEWAY
+  main:
+    web-application-type: reactive
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       routes:
+        # Authentication Service Routes
+        - id: AUTHENTICATION-SERVICE-REGISTER
+          uri: lb://AUTHENTICATION-SERVICE
+          predicates:
+            - Path=/api/v1/auth/register
+          filters:
+            - name: RemoveRequestHeader
+              args:
+                name: Authorization
+        - id: AUTHENTICATION-SERVICE-LOGIN
+          uri: lb://AUTHENTICATION-SERVICE
+          predicates:
+            - Path=/api/v1/auth/login
+          filters:
+            - name: RemoveRequestHeader
+              args:
+                name: Authorization
+        - id: AUTHENTICATION-SERVICE-VERIFY
+          uri: lb://AUTHENTICATION-SERVICE
+          predicates:
+            - Path=/api/v1/auth/accountVerification/**
+          filters:
+            - name: RemoveRequestHeader
+              args:
+                name: Authorization
         - id: AUTHENTICATION-SERVICE
           uri: lb://AUTHENTICATION-SERVICE
           predicates:
             - Path=/api/v1/auth/**
-          #intercept requests using filter for jwt
           filters:
             - AuthenticationFilter
             - name: RemoveRequestHeader
               args:
                 name: Authorization
 
----
+        # Admin Routes
+        - id: AUTHENTICATION-SERVICE-ADMIN
+          uri: lb://AUTHENTICATION-SERVICE
+          predicates:
+            - Path=/api/v1/admin/**
+          filters:
+            - AuthenticationFilter
+        
+        # Authenticated Routes
+        - id: AUTHENTICATION-SERVICE-AUTHENTICATED
+          uri: lb://AUTHENTICATION-SERVICE
+          predicates:
+            - Path=/authenticated/**
+          filters:
+            - AuthenticationFilter
+            - name: RemoveRequestHeader
+              args:
+                name: Authorization
+        
+        # Comment Service Routes
+        - id: COMMENT-SERVICE
+          uri: lb://COMMENT-SERVICE
+          predicates:
+            - Path=/api/v1/comments/**
+          filters:
+            - AuthenticationFilter
+        
+        # Task Service Routes
+        - id: TASK-SERVICE
+          uri: lb://TASK-SERVICE
+          predicates:
+            - Path=/api/v1/tasks/**
+          filters:
+            - AuthenticationFilter
+        
+        # Project Service Routes
+        - id: PROJECT-SERVICE
+          uri: lb://PROJECT-SERVICE
+          predicates:
+            - Path=/api/v1/project/**
+          filters:
+            - AuthenticationFilter
+  config:
+    import: optional:${CONFIG_SERVER_URI:http://localhost:9296}/
 
-spring:
-  main:
-    web-application-type: reactive
----
+#eureka-client configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
 
 #custom-variables
 token:

@@ -38,7 +38,7 @@ const Header = () => {
                                 >
                                     Tasks
                                 </Link>
-                                {user?.roles.includes('ADMIN') && (
+                                {user?.roles.includes('ROLE_ADMIN') && (
                                     <Link
                                         to="/admin"
                                         className="text-secondary hover:text-primary transition-colors font-medium"
@@ -46,7 +46,7 @@ const Header = () => {
                                         Admin Panel
                                     </Link>
                                 )}
-                                {user?.roles.includes('PROJECT_LEADER') && (
+                                {user?.roles.includes('ROLE_PROJECT_LEADER') && (
                                     <Link
                                         to="/leader"
                                         className="text-secondary hover:text-primary transition-colors font-medium"

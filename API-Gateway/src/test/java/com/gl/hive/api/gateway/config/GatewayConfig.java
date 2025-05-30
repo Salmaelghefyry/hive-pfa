@@ -7,12 +7,28 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
+@EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class GatewayConfig {
 
     private final AuthenticationFilter authenticationFilter;
+
+    @Bean
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        http
+            .csrf(csrf -> csrf.disable())
+            .authorizeExchange(auth -> auth
+                .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .anyExchange().permitAll()
+            );
+        return http.build();
+    }
 
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder routeLocatorBuilder) {

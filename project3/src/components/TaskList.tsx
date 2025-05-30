@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onUpdate, user }) => {
   const [searchLoading, setSearchLoading] = useState(false);
 
   // Only allow task management for ADMIN or PROJECT_LEADER
-  const canManageTasks = user && (user.roles.includes('ADMIN') || user.roles.includes('PROJECT_LEADER'));
+  const canManageTasks = user && (user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_PROJECT_LEADER'));
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

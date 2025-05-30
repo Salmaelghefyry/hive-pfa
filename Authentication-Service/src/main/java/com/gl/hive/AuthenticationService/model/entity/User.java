@@ -1,6 +1,7 @@
 package com.gl.hive.AuthenticationService.model.entity;
 
 import com.gl.hive.AuthenticationService.model.entity.jwt.JwtToken;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,8 +23,14 @@ public class User implements UserDetails {
     private Long userId;
 
     private String username;
+    
+    @JsonIgnore
     private String password;
+    
     private String email;
+
+
+
     private boolean active = false;
 
     /* relationships */
@@ -48,6 +55,7 @@ public class User implements UserDetails {
     private Set<Departments> departments = new HashSet<>();
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private List<JwtToken> jwtTokens;
     /* end of relationships */
 
@@ -90,7 +98,7 @@ public class User implements UserDetails {
     // todo: implement the security to bypass even if the user is not active, but he/she won't have
     //  any access to any resources accept the login and search groups
     public boolean isEnabled() {
-        return this.isActive();
+        return this.active;
     }
 
 }

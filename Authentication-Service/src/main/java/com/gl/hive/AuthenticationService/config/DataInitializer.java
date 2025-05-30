@@ -1,8 +1,11 @@
 package com.gl.hive.AuthenticationService.config;
 
 import com.gl.hive.AuthenticationService.model.entity.Roles;
+import com.gl.hive.AuthenticationService.model.entity.Departments;
 import com.gl.hive.AuthenticationService.repository.RolesRepository;
+import com.gl.hive.AuthenticationService.repository.DepartmentsRepository;
 import com.gl.hive.shared.lib.model.enums.Role;
+import com.gl.hive.shared.lib.model.enums.Department;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +20,17 @@ public class DataInitializer {
             for (Role role : new Role[]{Role.ADMIN, Role.PROJECT_LEADER, Role.TEAM_MEMBER}) {
                 rolesRepository.findByRole(role)
                         .orElseGet(() -> rolesRepository.save(Roles.builder().role(role).build()));
+            }
+        };
+    }
+
+    @Bean
+    CommandLineRunner initDepartments(DepartmentsRepository departmentsRepository) {
+        return args -> {
+            // Initialize all departments
+            for (Department department : Department.values()) {
+                departmentsRepository.findByDepartment(department)
+                        .orElseGet(() -> departmentsRepository.save(Departments.builder().department(department).build()));
             }
         };
     }

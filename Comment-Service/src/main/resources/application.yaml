@@ -18,7 +18,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/${DB_AUTHENTICATION_NAME:hive_comment_service}
     username: root
-    password: Outlook2@@3
+    password: Halima1975**
 
   jpa:
     hibernate:

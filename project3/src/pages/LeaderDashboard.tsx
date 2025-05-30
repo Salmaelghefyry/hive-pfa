@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,14 +33,14 @@ const LeaderDashboard = () => {
 
   const loadData = async () => {
     try {
-      const projects = await projectAPI.search();
-      const leaderProjects = projects.filter((p: any) => p.leaderId === user?.id);
-      setMyProjects(leaderProjects);
+      // Fetch projects relevant to the current user directly from the backend
+      const userProjects = await projectAPI.fetchUserProjects();
+      setMyProjects(userProjects);
       
       // Aggregate team members and tasks for all leader projects
       let allMembers: any[] = [];
       let allTasks: any[] = [];
-      leaderProjects.forEach((project: any) => {
+      userProjects.forEach((project: any) => {
         if (project.members && project.members.projectMembers) {
           allMembers = allMembers.concat(project.members.projectMembers);
         }
@@ -55,7 +54,7 @@ const LeaderDashboard = () => {
       
       // Calculate stats
       setStats({
-        totalProjects: leaderProjects.length,
+        totalProjects: userProjects.length,
         totalMembers: allMembers.length,
         completedTasks: allTasks.filter(t => t.status === 'completed').length,
         pendingTasks: allTasks.filter(t => t.status !== 'completed').length

@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: 5-PROJECT-SERVICE
+    name: PROJECT-SERVICE
 ---
 
 #config-server configuration
@@ -18,7 +18,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/${DB_AUTHENTICATION_NAME:hive_project_service}
     username: root
-    password: Outlook2@@3
+    password: Halima1975**
 
   jpa:
     hibernate:
@@ -26,3 +26,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

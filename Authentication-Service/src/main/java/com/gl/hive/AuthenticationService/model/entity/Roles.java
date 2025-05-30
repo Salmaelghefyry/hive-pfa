@@ -1,6 +1,7 @@
 package com.gl.hive.AuthenticationService.model.entity;
 
 import com.gl.hive.shared.lib.model.enums.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,6 +25,7 @@ public class Roles {
 
     /* relationships */
     @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER)
+    @JsonIgnore
     private Set<User> users = new HashSet<>();
     /* end of relationships */
 

@@ -1,17 +1,24 @@
-
 import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Users, Settings, BarChart3, Shield, Search, Filter, UserPlus } from 'lucide-react';
-import { apiRequest, projectAPI } from '@/utils/api';
+import { apiRequest, projectAPI, taskAPI } from '@/utils/api';
 import { toast } from '@/hooks/use-toast';
+
+// Import the Dialog components for the modal
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'; // Assuming you use shadcn/ui Dialog
+
+import AdminStats from '@/components/AdminStats';
+// Import the AddUserForm component
+import AddUserForm from '@/components/AddUserForm'; 
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roleChangeLoading, setRoleChangeLoading] = useState<string | null>(null);
@@ -19,7 +26,10 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
 
-  useEffect(() => {
+  // State for the Add User modal
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+
+  // Function to fetch user data
     const fetchData = async () => {
       setLoading(true);
       setError(null);
@@ -30,23 +40,61 @@ const AdminDashboard = () => {
         setUsers(usersData);
         setFilteredUsers(usersData);
         
+      // Fetch projects separately and handle their errors independently
+      try {
         const projectsData = await projectAPI.search();
+        console.log('Projects data received:', projectsData);
         setProjects(projectsData);
+      } catch (projectError) {
+        console.error('Failed to fetch projects:', projectError);
+        // You might want to set a separate error state for projects or just log this
+        // For now, we just log and don't let it block user display
+      }
+
+        // Fetch task data
+        try {
+          const tasksData = await taskAPI.fetchTasks();
+          console.log('Tasks data received:', tasksData);
+          setTasks(tasksData); // Set the tasks state
+        } catch (taskError) {
+          console.error('Failed to fetch tasks:', taskError);
+          // Handle task fetching error if needed
+        }
+
       } catch (err: any) {
-        console.error('Failed to fetch data:', err);
-        setError(err.message || 'Failed to load data');
-        // Try to provide more helpful error information
+      console.error('Failed to fetch user data:', err);
+      // Only set the main error state if fetching users failed
         if (err.status === 403) {
           setError('Access denied. Admin privileges required.');
         } else if (err.status === 404) {
           setError('Admin endpoints not found. Please check API configuration.');
+      } else {
+        setError(err.message || 'Failed to load user data');
         }
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+
+
+  useEffect(() => {
+    fetchData(); // Initial data fetch
   }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, refetching data...');
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchData]); // Depend on fetchData to ensure the correct function is called
 
   useEffect(() => {
     // Filter users based on search term and role filter
@@ -62,7 +110,7 @@ const AdminDashboard = () => {
     if (roleFilter !== 'all') {
       filtered = filtered.filter(user =>
         user.roles && user.roles.some((role: any) => 
-          (typeof role === 'string' ? role : role.role)?.toLowerCase().includes(roleFilter.toLowerCase())
+          (typeof role === 'string' ? role : role.role)?.toLowerCase().includes(roleFilter.toLowerCase().replace('role_', ''))
         )
       );
     }
@@ -127,6 +175,12 @@ const AdminDashboard = () => {
     ) : (
       <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Inactive</span>
     );
+  };
+
+  // Function to refresh user list after adding a user
+  const handleUserAdded = () => {
+    setShowAddUserModal(false);
+    fetchData(); // Refresh the list
   };
 
   return (
@@ -212,14 +266,22 @@ const AdminDashboard = () => {
                 <Users className="w-5 h-5 mr-2" />
                 User Management
               </CardTitle>
+              
+              {/* Add User Button triggering the modal */}
+              <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
+                <DialogTrigger asChild>
               <Button
-                onClick={() => toast({ title: "Feature Coming Soon", description: "User creation will be available soon." })}
                 className="bg-primary hover:bg-secondary text-white"
                 size="sm"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add User
               </Button>
+                </DialogTrigger>
+                {/* Render the AddUserForm inside the Dialog */}
+                <AddUserForm onClose={() => setShowAddUserModal(false)} onUserAdded={handleUserAdded} />
+              </Dialog>
+
             </div>
           </CardHeader>
           <CardContent>
@@ -254,7 +316,7 @@ const AdminDashboard = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <span className="ml-2 text-secondary/70">Loading users...</span>
               </div>
-            ) : error ? (
+            ) : error && filteredUsers.length === 0 ? (
               <div className="text-center py-8">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-red-600 font-medium">Error Loading Users</p>
@@ -270,6 +332,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
             ) : (
+              !loading && (!error || filteredUsers.length > 0) && (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -311,7 +374,7 @@ const AdminDashboard = () => {
                                 (typeof user.roles[0] === 'string' ? user.roles[0] : user.roles[0].role) : ''}
                               onChange={e => handleRoleChange(user.userId, e.target.value)}
                               disabled={roleChangeLoading === user.userId}
-                              className="border border-accent/30 rounded px-2 py-1 text-xs focus:border-primary focus:outline-none"
+                                className="border border-accent/30 rounded-md px-2 py-1 text-xs focus:border-primary focus:outline-none"
                             >
                               <option value="ROLE_ADMIN">Admin</option>
                               <option value="ROLE_PROJECT_LEADER">Project Leader</option>
@@ -320,11 +383,13 @@ const AdminDashboard = () => {
                             <Button
                               onClick={() => handleActivationToggle(user.userId, !user.active)}
                               disabled={activationLoading === user.userId}
+                                variant={user.active ? "destructive" : "secondary"}
                               size="sm"
-                              variant={user.active ? "destructive" : "default"}
-                              className="text-xs"
                             >
-                              {activationLoading === user.userId ? '...' : (user.active ? 'Deactivate' : 'Activate')}
+                                {activationLoading === user.userId ? 
+                                  (user.active ? 'Deactivating...' : 'Activating...') : 
+                                  (user.active ? 'Deactivate' : 'Activate')
+                                }
                             </Button>
                           </div>
                         </td>
@@ -332,47 +397,14 @@ const AdminDashboard = () => {
                     ))}
                   </tbody>
                 </table>
-
-                {filteredUsers.length === 0 && !loading && (
-                  <div className="text-center py-8">
-                    <Users className="w-12 h-12 text-accent mx-auto mb-2" />
-                    <p className="text-secondary/70">
-                      {searchTerm || roleFilter !== 'all' ? 'No users match your search criteria' : 'No users found'}
-                    </p>
                   </div>
-                )}
-              </div>
+              )
             )}
           </CardContent>
         </Card>
 
-        {/* Project Overview */}
-        <Card className="border-accent/20">
-          <CardHeader>
-            <CardTitle className="text-primary">Project Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {projects.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projects.map((project) => (
-                  <Card key={project.projectId} className="border-accent/10">
-                    <CardContent className="p-4">
-                      <h4 className="font-medium text-primary mb-1">{project.title}</h4>
-                      <p className="text-sm text-secondary/70 mb-2">
-                        Leader: {project.leader?.username || 'Unknown'}
-                      </p>
-                      <p className="text-sm text-secondary/70">
-                        Status: <span className="capitalize">{project.status}</span>
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-secondary/70">No projects available</p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Statistics Section */}
+        <AdminStats users={users} projects={projects} tasks={tasks} />
       </div>
     </div>
   );

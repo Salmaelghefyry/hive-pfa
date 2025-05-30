@@ -1,53 +1,53 @@
+import axios from 'axios';
+
 const API_BASE = 'http://localhost:9999';
 
-export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const token = localStorage.getItem('token');
-  
-  const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+// Function to handle API requests
+export const apiRequest = async (
+  url: string,
+  options: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    body?: any;
+    params?: any; // Added params option
+    headers?: Record<string, string>;
+  } = {}
+) => {
+  const { method = 'GET', body, params, headers = {} } = options;
+  const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
 
   if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const config: RequestInit = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  };
-
   try {
-    const response = await fetch(`${API_BASE}${endpoint}`, config);
-    
-    if (!response.ok) {
-      let errorMsg = `HTTP error! status: ${response.status}`;
-      let errorData = null;
-      try {
-        errorData = await response.json();
-        if (errorData && errorData.errorMessage) {
-          errorMsg = errorData.errorMessage;
-        }
-      } catch (e) {
-        // fallback to default errorMsg
-      }
-      const error = new Error(errorMsg);
-      (error as any).status = response.status;
-      (error as any).data = errorData;
-      throw error;
-    }
-    
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
-    }
-    
-    return await response.text();
-  } catch (error) {
+    const response = await axios({
+      method,
+      url,
+      data: body,
+      params,
+      headers,
+    });
+
+    return response.data;
+  } catch (error: any) {
     console.error('API request failed:', error);
-    throw error;
+    // You can add more sophisticated error handling here
+    // For now, we re-throw the error to be caught by the calling component
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      const message = error.response.data.message || error.response.statusText;
+       console.error(`HTTP error! status: ${error.response.status}`, message);
+       throw new Error(message);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received:', error.request);
+       throw new Error('No response from server.');
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Request setup error:', error.message);
+       throw new Error(`Error: ${error.message}`);
+    }
   }
 };
 
@@ -55,11 +55,11 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 export const authAPI = {
   register: (userData: any) => apiRequest('/api/v1/auth/register', {
     method: 'POST',
-    body: JSON.stringify(userData)
+    body: userData
   }),
   login: (credentials: any) => apiRequest('/api/v1/auth/login', {
     method: 'POST',
-    body: JSON.stringify(credentials)
+    body: credentials
   }),
   authenticate: () => apiRequest('/api/v1/auth/authenticate', { method: 'POST' }),
   getAccountVerification: (token: string) => apiRequest(`/api/v1/auth/accountVerification/${token}`),
@@ -78,66 +78,71 @@ export const demoAPI = {
 export const projectAPI = {
   create: (projectData: any) => apiRequest('/api/v1/project/create-project', {
     method: 'POST',
-    body: JSON.stringify(projectData)
+    body: projectData
   }),
-  listMembers: (projectId: string) => apiRequest(`/api/v1/project/list-members/${projectId}`),
-  search: () => apiRequest('/api/v1/search_project'),
-  searchByName: (projectName: string) => apiRequest(`/api/v1/search_project/${projectName}`),
-  addMember: (projectId: string, userId: string) => apiRequest(`/api/v1/project/${projectId}/add-member/${userId}`, { method: 'POST' }),
-  removeMember: (projectId: string, userId: string) => apiRequest(`/api/v1/project/${projectId}/remove-member/${userId}`, { method: 'DELETE' }),
-  getActiveProjectForUser: (userId: string) => apiRequest(`/api/v1/project/inter-communication/active-project/${userId}`),
-  getCompletedProjectsForUser: (userId: string) => apiRequest(`/api/v1/project/inter-communication/completed-projects/${userId}`),
+  listMembers: (projectId: string) => apiRequest(`/api/v1/projects/${projectId}/members`),
+  search: () => apiRequest('/api/v1/project/search-projects'),
+  searchByName: (projectName: string) => apiRequest(`/api/v1/projects/search/${projectName}`),
+  addMember: (projectId: string, userId: string) => apiRequest(`/api/v1/projects/${projectId}/members/${userId}`, { method: 'POST' }),
+  removeMember: (projectId: string, userId: string) => apiRequest(`/api/v1/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
+  getActiveProjectForUser: (userId: string) => apiRequest(`/api/v1/projects/active/${userId}`),
+  getCompletedProjectsForUser: (userId: string) => apiRequest(`/api/v1/projects/completed/${userId}`),
+  fetchUserProjects: () => apiRequest('/api/v1/project/user-projects'),
 };
 
 // Task API
 export const taskAPI = {
-  create: (projectId: string, taskData: any) => apiRequest(`/api/v1/task/management/new-task/${projectId}`, {
+  create: (projectId: string, taskData: any) => apiRequest(`/api/v1/tasks/${projectId}`, {
     method: 'POST',
-    body: JSON.stringify(taskData)
+    body: taskData
   }),
-  update: (taskId: string, taskData: any) => apiRequest(`/api/v1/task/management/update-task/${taskId}`, {
+  update: (taskId: string, taskData: any) => apiRequest(`/api/v1/tasks/${taskId}`, {
     method: 'PUT',
-    body: JSON.stringify(taskData)
+    body: taskData
   }),
-  get: (taskId: string) => apiRequest(`/api/v1/task/management/task/${taskId}`),
-  delete: (projectId: string, taskId: string) => apiRequest(`/api/v1/task/management/deleteTask/projectId/${projectId}/taskId/${taskId}`, {
+  get: (taskId: string) => apiRequest(`/api/v1/tasks/${taskId}`),
+  delete: (projectId: string, taskId: string) => apiRequest(`/api/v1/tasks/${projectId}/${taskId}`, {
     method: 'DELETE'
   }),
   search: (params?: any) => {
     const queryParams = params ? `?${new URLSearchParams(params).toString()}` : '';
-    return apiRequest(`/api/v1/task/management/searchTasks${queryParams}`);
+    return apiRequest(`/api/v1/tasks${queryParams}`);
   },
-  export: () => apiRequest('/api/v1/task/management/exportTasks'),
-  assignToUsers: (assignmentData: any) => apiRequest('/api/v1/task/assignment/assignTaskToUsers', {
+  export: () => apiRequest('/api/v1/tasks/export'),
+  assignToUsers: (assignmentData: any) => apiRequest('/api/v1/tasks/assign', {
     method: 'POST',
-    body: JSON.stringify(assignmentData)
+    body: assignmentData
   }),
-  assignToAll: (assignmentData: any) => apiRequest('/api/v1/task/assignment/assignTask/all', {
+  assignToAll: (assignmentData: any) => apiRequest('/api/v1/tasks/assign/all', {
     method: 'POST',
-    body: JSON.stringify(assignmentData)
+    body: assignmentData
   }),
-  unassign: (unassignData: any) => apiRequest('/api/v1/task/assignment/unassignTask', {
+  unassign: (unassignData: any) => apiRequest('/api/v1/tasks/unassign', {
     method: 'DELETE',
-    body: JSON.stringify(unassignData)
+    body: unassignData
   }),
-  unassignAll: (unassignData: any) => apiRequest('/api/v1/task/assignment/unassignTask/all', {
+  unassignAll: (unassignData: any) => apiRequest('/api/v1/tasks/unassign/all', {
     method: 'DELETE',
-    body: JSON.stringify(unassignData)
+    body: unassignData
   }),
-  updateProgress: (taskId: string, projectId: string, progressData: any) => apiRequest(`/api/v1/task/progress/${taskId}/${projectId}`, {
+  updateProgress: (taskId: string, projectId: string, progressData: any) => apiRequest(`/api/v1/tasks/${taskId}/${projectId}/progress`, {
     method: 'POST',
-    body: JSON.stringify(progressData)
+    body: progressData
+  }),
+  fetchTasks: (params?: { status?: string; projectId?: number; assignedToUserId?: number }) => apiRequest('/api/v1/task/management/searchTasks', {
+    method: 'GET',
+    params: params,
   }),
 };
 
 // Comment API
 export const commentAPI = {
-  onProject: (commentData: any) => apiRequest('/api/v1/comment/on-project', {
+  onProject: (commentData: any) => apiRequest('/api/v1/comments/on-project', {
     method: 'POST',
-    body: JSON.stringify(commentData)
+    body: commentData
   }),
-  onTask: (commentData: any) => apiRequest('/api/v1/comment/on-task', {
+  onTask: (commentData: any) => apiRequest('/api/v1/comments/on-task', {
     method: 'POST',
-    body: JSON.stringify(commentData)
+    body: commentData
   }),
 };

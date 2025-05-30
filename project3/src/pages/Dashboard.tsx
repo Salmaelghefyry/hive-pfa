@@ -37,7 +37,7 @@ const Dashboard = () => {
   const [history, setHistory] = useState([]);
 
   // Only show New Project and New Task buttons for PROJECT_LEADER or ADMIN
-  const canCreateProjectOrTask = user && (user.roles.includes('ADMIN') || user.roles.includes('PROJECT_LEADER'));
+  const canCreateProjectOrTask = user && (user.roles.includes('ROLE_ADMIN') || user.roles.includes('ROLE_PROJECT_LEADER'));
 
   useEffect(() => {
     console.log('Dashboard user:', user);
@@ -138,9 +138,9 @@ const Dashboard = () => {
   }
 
   if (!user) return null;
-  if (user.roles.includes('ADMIN')) return <AdminDashboard />;
-  if (user.roles.includes('PROJECT_LEADER')) return <LeaderDashboard />;
-  if (user.roles.includes('TEAM_MEMBER')) return <TeamDashboard />;
+  if (user.roles.includes('ROLE_ADMIN')) return <AdminDashboard />;
+  if (user.roles.includes('ROLE_PROJECT_LEADER')) return <LeaderDashboard />;
+  if (user.roles.includes('ROLE_TEAM_MEMBER')) return <TeamDashboard />;
   return <div className="min-h-screen flex items-center justify-center"><p className="text-red-500">No valid role assigned. Please contact admin.</p></div>;
 };
 
