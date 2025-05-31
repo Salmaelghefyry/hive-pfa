@@ -36,6 +36,7 @@ const LeaderDashboard = () => {
       // Fetch projects relevant to the current user directly from the backend
       const userProjects = await projectAPI.fetchUserProjects();
       setMyProjects(userProjects);
+      console.log('My projects fetched:', userProjects);
       
       // Aggregate team members and tasks for all leader projects
       let allMembers: any[] = [];
